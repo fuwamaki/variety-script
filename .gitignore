@@ -1,0 +1,32 @@
+# generally
+
+.DS_Store
+*.swp
+DerivedData
+
+# ObjC/Swift specific
+
+*.hmap
+*.ipa
+
+# only swift
+
+UserInterfaceState.xcuserstate
+
+# Other
+
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcsmblueprint
+*.xcworkspacedata
+
+**/xcuserdata/
+**/xcshareddata/
+
+# objc
+
+a.out
+vol
+*.o
+
