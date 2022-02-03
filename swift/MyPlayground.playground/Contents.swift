@@ -1,5 +1,186 @@
 import UIKit
 
+indirect enum QuizAnswerType {
+    case fraction(numeratorType: QuizAnswerType, denominatorType: QuizAnswerType) // 分数
+    case formula(types: [QuizAnswerType]) // 式
+    case mixed(mixedValue: Int, type: QuizAnswerType) // mixed（帯分数や 2√2など）
+    case root(value: QuizAnswerType) // ルート
+    case decimal(value: Double) // 小数
+    case integer(value: Int) // 整数
+    case plus // + 足し算
+    case minus // - 引き算
+}
+
+// "\\frac{1+\\sqrt{2}}{3}" みたいなのが引数。
+func fraction(_ latex: String) -> (numerator: String, denominator: String, other: String) {
+    var latex = latex
+    latex.removeSubrange(latex.range(of: "\\frac")!)
+    // numerator
+    var numeratorBracketCounter = 0
+    let startNumeratorBracketIndex = latex.index(after: latex.firstIndex(of: "{")!)
+    var endNumeratorBracketOffset: Int?
+    for (offset, character) in latex.enumerated() {
+        if character == "{" {
+            numeratorBracketCounter += 1
+        } else if character == "}" {
+            numeratorBracketCounter -= 1
+        }
+        if numeratorBracketCounter == 0 {
+            endNumeratorBracketOffset = offset-1
+            break
+        }
+    }
+    let endNumeratorBracketIndex = latex.index(startNumeratorBracketIndex, offsetBy: endNumeratorBracketOffset!)
+    let numerator = String(latex[startNumeratorBracketIndex..<endNumeratorBracketIndex])
+    latex.removeSubrange(latex.index(before: startNumeratorBracketIndex)...endNumeratorBracketIndex)
+
+    // denominator
+    var denominatorBracketCounter = 0
+    let startDenominatorBracketIndex = latex.index(after: latex.firstIndex(of: "{")!)
+    var endDenominatorBracketOffset: Int?
+    for (offset, character) in latex.enumerated() {
+        if character == "{" {
+            denominatorBracketCounter += 1
+        } else if character == "}" {
+            denominatorBracketCounter -= 1
+        }
+        if denominatorBracketCounter == 0 {
+            endDenominatorBracketOffset = offset-1
+            break
+        }
+    }
+    let endDenominatorBracketIndex = latex.index(startDenominatorBracketIndex, offsetBy: endDenominatorBracketOffset!)
+    let denominator = String(latex[startDenominatorBracketIndex..<endDenominatorBracketIndex])
+
+    // other
+    latex.removeSubrange(latex.index(before: startDenominatorBracketIndex)...endDenominatorBracketIndex)
+    return (numerator: numerator, denominator: denominator, other: latex)
+}
+
+// "\\sqrt{2}", "\\sqrt{1+\\sqrt{2}}" みたいなのが引数
+func root(_ latex: String) -> (value: String, other: String) {
+    var latex = latex
+    latex.removeSubrange(latex.range(of: "\\sqrt")!)
+    var bracketCounter = 0
+    let startBracketIndex = latex.index(after: latex.firstIndex(of: "{")!)
+    var endBracketOffset: Int?
+    for (offset, character) in latex.enumerated() {
+        if character == "{" {
+            bracketCounter += 1
+        } else if character == "}" {
+            bracketCounter -= 1
+        }
+        if bracketCounter == 0 {
+            endBracketOffset = offset-1
+            break
+        }
+    }
+    let endBracketIndex = latex.index(startBracketIndex, offsetBy: endBracketOffset!)
+    let value = String(latex[startBracketIndex..<endBracketIndex])
+    latex.removeSubrange(latex.index(before: startBracketIndex)...endBracketIndex)
+    return (value: value, other: latex)
+}
+
+func latexType(_ latex: String) -> QuizAnswerType {
+    if let int = Int(latex) {
+        return .integer(value: int)
+    } else if let double = Double(latex) {
+        return .decimal(value: double)
+    } else if latex == "+" {
+        return .plus
+    } else if latex == "-" {
+        return .minus
+    }
+
+    // 先頭から順番に見ていく。先頭にはnumberか\しかありえない前提。
+    var prefixStr = ""
+    for character in latex {
+        if character == "\\", prefixStr.isEmpty {
+            // fracかsqrt始まり
+            break
+        } else if character == "\\", !prefixStr.isEmpty {
+            // 先頭に数値があるので、mixed
+            var tmp = latex
+            tmp.removeSubrange(latex.range(of: prefixStr)!)
+            return .mixed(mixedValue: Int(prefixStr)!, type: latexType(tmp))
+        } else if character == "+" {
+            var tmp = latex
+            tmp.removeSubrange(latex.range(of: prefixStr + "+")!)
+            return .formula(types: [.integer(value: Int(prefixStr)!), .plus, latexType(tmp)])
+        } else if character == "-" {
+            var tmp = latex
+            tmp.removeSubrange(latex.range(of: prefixStr + "-")!)
+            return .formula(types: [.integer(value: Int(prefixStr)!), .minus, latexType(tmp)])
+        } else {
+            prefixStr = prefixStr + String(character)
+        }
+    }
+
+    // fracかsqrt始まりの場合
+    if latex.contains("\\frac") { // "\\frac{numerator}{denominator}"
+        let result = fraction(latex)
+        if result.other.isEmpty {
+            return .fraction(
+                numeratorType: latexType(result.numerator),
+                denominatorType: latexType(result.denominator)
+            )
+        } else {
+            let type: QuizAnswerType = {
+                if result.other.first == "+" {
+                    return .plus
+                } else if result.other.first == "-" {
+                    return .minus
+                } else {
+                    fatalError()
+                }
+            }()
+            var tmp = result.other
+            tmp.removeFirst()
+            return .formula(types: [
+                .fraction(
+                    numeratorType: latexType(result.numerator),
+                    denominatorType: latexType(result.denominator)
+                ),
+                type,
+                latexType(tmp)
+            ])
+        }
+    } else if latex.contains("\\sqrt") {
+        let result = root(latex)
+        if result.other.isEmpty {
+            return .root(value: latexType(result.value))
+        } else {
+            let type: QuizAnswerType = {
+                if result.other.first == "+" {
+                    return .plus
+                } else if result.other.first == "-" {
+                    return .minus
+                } else {
+                    fatalError()
+                }
+            }()
+            var tmp = result.other
+            tmp.removeFirst()
+            return .formula(types: [
+                .root(value: latexType(result.value)),
+                type,
+                latexType(tmp)
+            ])
+        }
+    } else {
+        fatalError()
+    }
+}
+
+//latexType("\\frac{\\sqrt{2}+1}{3}")
+//print(latexType("\\frac{1+\\sqrt{2}}{3}"))
+print(latexType("2\\frac{2}{3}+1"))
+
+
+
+
+// =====================================
+
 // "を取る
 var onlineTitle = "オンライン世界の果てまではいけない禍です【オンラインテスト】"
 //if let range: Range = onlineTitle.range(of: "【オンライン】") {
