@@ -57,8 +57,10 @@ print(text1[..<text1.index(after: persimmonIndex)]) // 隣の客はよく柿
 print(text1[..<text1.index(persimmonIndex, offsetBy: 1)]) // 隣の客はよ柿
 print(text1[..<text1.index(persimmonIndex, offsetBy: 2)]) // 隣の客はよ柿食
 print(text1[..<text1.index(persimmonIndex, offsetBy: -1)]) // 隣の客はよ
-
 // successor(), predecessor() はもう使えない
+
+print(text1.distance(from: text1.startIndex, to: persimmonIndex)) // 6
+print(text1.distance(from: persimmonIndex, to: text1.endIndex)) // 5
 
 var text2 = "欲しいのは【金メダル】だ"
 
