@@ -4,21 +4,21 @@ import UIKit
 var name1 = "木村文乃"
 if let range = name1.range(of: "文乃") {
     name1.removeSubrange(range)
-    print(name1)
+    print(name1) // 木村
 }
 
 // 切り取り remove
 var name2 = "木村文乃"
 if let range = name2.range(of: "文乃") {
     name2.replaceSubrange(range, with: "")
-    print(name2)
+    print(name2) // 木村
 }
 
 // 置き換え
 var name3 = "木村文乃"
 if let range = name3.range(of: "文") {
     name3.replaceSubrange(range, with: "佳")
-    print(name3)
+    print(name3) // 木村佳乃
 }
 
 // index
