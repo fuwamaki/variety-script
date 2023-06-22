@@ -3,6 +3,11 @@
 .DS_Store
 *.swp
 DerivedData
+.env
+
+# node
+
+node_modules/
 
 # ObjC/Swift specific
 

@@ -4,21 +4,21 @@ import UIKit
 var name1 = "木村文乃"
 if let range = name1.range(of: "文乃") {
     name1.removeSubrange(range)
-    print(name1)
+    print(name1) // 木村
 }
 
 // 切り取り remove
 var name2 = "木村文乃"
 if let range = name2.range(of: "文乃") {
     name2.replaceSubrange(range, with: "")
-    print(name2)
+    print(name2) // 木村
 }
 
 // 置き換え
 var name3 = "木村文乃"
 if let range = name3.range(of: "文") {
     name3.replaceSubrange(range, with: "佳")
-    print(name3)
+    print(name3) // 木村佳乃
 }
 
 // index
@@ -57,8 +57,10 @@ print(text1[..<text1.index(after: persimmonIndex)]) // 隣の客はよく柿
 print(text1[..<text1.index(persimmonIndex, offsetBy: 1)]) // 隣の客はよ柿
 print(text1[..<text1.index(persimmonIndex, offsetBy: 2)]) // 隣の客はよ柿食
 print(text1[..<text1.index(persimmonIndex, offsetBy: -1)]) // 隣の客はよ
-
 // successor(), predecessor() はもう使えない
+
+print(text1.distance(from: text1.startIndex, to: persimmonIndex)) // 6
+print(text1.distance(from: persimmonIndex, to: text1.endIndex)) // 5
 
 var text2 = "欲しいのは【金メダル】だ"
 
